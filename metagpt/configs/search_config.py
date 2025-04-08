@@ -16,7 +16,7 @@ from metagpt.utils.yaml_model import YamlModel
 class SearchConfig(YamlModel):
     """Config for Search"""
 
-    api_type: SearchEngineType = SearchEngineType.DUCK_DUCK_GO
+    api_type: SearchEngineType = SearchEngineType.SERPAPI_GOOGLE
     api_key: str = ""
     cse_id: str = ""  # for google
     search_func: Optional[Callable] = None

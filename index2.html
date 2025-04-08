@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI时尚助手</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            transition: background-color 0.5s ease, color 0.5s ease;
+            overflow-x: hidden;
+            font-family: 'Arial', sans-serif;
+        }
+        .chat-wrapper {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            min-height: 100vh;
+        }
+        .chat-header {
+            text-align: center;
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: transparent;
+        }
+        .chat-header h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1f2937;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .chat-header p {
+            color: #4b5563;
+            font-size: 1.1rem;
+            margin-top: 10px;
+        }
+        .carousel {
+            position: relative;
+            height: 500px;
+            width: 100%;
+            overflow: hidden;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .carousel.hidden {
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+        }
+        .carousel-inner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            transition: transform 0.6s ease;
+            width: auto;
+            min-width: 100%;
+        }
+        .carousel-item {
+            width: 300px;
+            height: 400px;
+            margin: 0 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: all 0.6s ease;
+            opacity: 0.5;
+            filter: blur(3px);
+            transform: scale(0.8);
+            flex-shrink: 0;
+        }
+        .carousel-item.active {
+            opacity: 1;
+            filter: none;
+            transform: scale(1);
+        }
+        .carousel-item img {
+            width: 100%;
+            height: 100%;
+            border-radius: 16px;
+            object-fit: cover;
+        }
+        .chat-container {
+            min-height: 300px; /* 确保最小高度 */
+            max-height: calc(100vh - 300px); /* 动态调整最大高度 */
+            overflow-y: auto;
+            padding: 20px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            opacity: 1; /* 默认可见 */
+            transform: translateY(0);
+            display: block;
+        }
+        .chat-container.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .message {
+            max-width: 70%;
+            padding: 12px 18px;
+            margin-bottom: 15px;
+            border-radius: 16px;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            opacity: 1; /* 默认可见 */
+            transform: translateY(0);
+        }
+        .message.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .user-message {
+            background: linear-gradient(135deg, #60a5fa, #93c5fd);
+            color: white;
+            margin-left: auto;
+            border-radius: 16px 16px 4px 16px;
+        }
+        .ai-message {
+            background: linear-gradient(135deg, #f3f4f6, #ffffff);
+            color: #374151;
+            border-radius: 16px 16px 16px 4px;
+        }
+        .image-message img {
+            width: 100%;
+            border-radius: 12px;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+        .image-message img:hover {
+            transform: scale(1.05);
+        }
+        .typing-indicator {
+            display: flex;
+            gap: 8px;
+            padding: 12px;
+        }
+        .typing-indicator span {
+            width: 10px;
+            height: 10px;
+            background: #60a5fa;
+            border-radius: 50%;
+            animation: pulse 0.7s infinite alternate;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes pulse {
+            to { transform: scale(1.3); opacity: 0.6; }
+        }
+        .input-area {
+            position: sticky;
+            bottom: 20px;
+            padding: 20px 0;
+            background: transparent;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .input-area input {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+        .input-area input:focus {
+            box-shadow: 0 4px 20px rgba(96, 165, 250, 0.4);
+            outline: none;
+        }
+        .input-area button {
+            background: linear-gradient(135deg, #60a5fa, #2563eb);
+            color: white;
+            padding: 14px 24px;
+            border-radius: 12px;
+            transition: transform 0.3s ease;
+        }
+        .input-area button:hover {
+            transform: scale(1.05);
+        }
+        .night-mode {
+            background: linear-gradient(135deg, #1f2937, #374151);
+            color: #d1d5db;
+        }
+        .night-mode .chat-container { background: #374151; }
+        .night-mode .ai-message { background: linear-gradient(135deg, #4b5563, #6b7280); color: #e5e7eb; }
+        .night-mode .user-message { background: linear-gradient(135deg, #2563eb, #60a5fa); }
+        .night-mode .input-area input { background: #4b5563; color: #e5e7eb; }
+        .suggestions {
+            position: absolute;
+            bottom: 90px;
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        .suggestion-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .suggestion-item:hover {
+            background: #f3f4f6;
+            padding-left: 20px;
+        }
+        .night-mode .suggestions { background: #4b5563; }
+        .night-mode .suggestion-item:hover { background: #6b7280; }
+        .header-buttons {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 15px;
+        }
+        .header-buttons button {
+            color: #4b5563;
+            transition: color 0.3s ease, transform 0.3s ease;
+        }
+        .header-buttons button:hover {
+            color: #2563eb;
+            transform: rotate(12deg);
+        }
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 10px 0;
+            margin: 10px 0;
+            scrollbar-width: none;
+        }
+        .quick-actions::-webkit-scrollbar {
+            display: none;
+        }
+        .quick-action-btn {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 0.9rem;
+        }
+        .quick-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        .media-upload {
+            display: flex;
+            gap: 10px;
+            margin-right: 10px;
+        }
+        .media-btn {
+            background: white;
+            border: 1px solid #e5e7eb;
+            background:#f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .media-btn:hover {
+            background: #f3f4f6;
+            background: #f1f5f9;
+            transform: scale(1.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .media-btn i {
+            color: #3b82f6;
+            color: #1e40af;
+            front-size:1.2rem;
+            transition: color 0.3s ease;
+        }
+        .emoji-picker {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            display: none;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 5px;
+            z-index: 1000;
+        }
+        .emoji-btn {
+            padding: 5px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .emoji-btn:hover {
+            transform: scale(1.2);
+        }
+        .message-actions {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 5px;
+        }
+        .message:hover .message-actions {
+            opacity: 1;
+        }
+        .action-btn {
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #6b7280;
+            transition: all 0.2s ease;
+        }
+        .action-btn:hover {
+            background: rgba(0, 0, 0, 0.1);
+            color: #3b82f6;
+        }
+        .night-mode .quick-action-btn {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
+        .night-mode .media-btn {
+            background: #374151;
+            border-color: #4b5563;
+        }
+        .night-mode .media-btn i {
+            color: #60a5fa;
+        }
+        .night-mode .emoji-picker {
+            background: #374151;
+        }
+    </style>
+</head>
+<body class="relative">
+    <!-- MagicUI Retro Grid -->
+    <div class="absolute inset-0 pointer-events-none opacity-10" style="background: url('https://magicui.design/retro-grid.svg'); animation: slide 25s infinite linear;">
+        <style>
+            @keyframes slide {
+                0% { background-position: 0 0; }
+                100% { background-position: 100px 100px; }
+            }
+        </style>
+    </div>
+
+    <div class="chat-wrapper">
+        <div class="chat-header">
+            <h1 class="animate__animated animate__fadeInDown">您的时尚助手</h1>
+            <p class="animate__animated animate__fadeInUp">嘿！我是你的时尚小伙伴，看看这些推荐，或者聊聊你的穿搭想法？</p>
+            <div class="header-buttons">
+                <button onclick="clearChat()" title="清除聊天记录">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+                <button onclick="toggleNightMode()" title="切换夜间模式">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button onclick="startVoiceInput()" title="语音输入">
+                    <i class="fas fa-microphone"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 初始图片轮播 -->
+        <div id="carousel" class="carousel">
+            <div class="carousel-inner" id="carousel-inner">
+                <div class="carousel-item"><img src="images/fashion1.jpg" alt="推荐1"></div>
+                <div class="carousel-item"><img src="images/fashion2.jpg" alt="推荐2"></div>
+                <div class="carousel-item"><img src="images/fashion3.jpg" alt="推荐3"></div>
+            </div>
+        </div>
+
+        <!-- 聊天区域 -->
+        <div id="chat-container" class="chat-container active">
+            <div class="quick-actions">
+                <button class="quick-action-btn" onclick="sendQuickQuestion('今日穿搭推荐')">今日穿搭</button>
+                <button class="quick-action-btn" onclick="sendQuickQuestion('秋季流行趋势')">秋季流行</button>
+                <button class="quick-action-btn" onclick="sendQuickQuestion('职场穿搭建议')">职场穿搭</button>
+                <button class="quick-action-btn" onclick="sendQuickQuestion('约会穿搭推荐')">约会穿搭</button>
+                <button class="quick-action-btn" onclick="sendQuickQuestion('运动时尚搭配')">运动时尚</button>
+            </div>
+            <!-- 初始消息 -->
+            <div class="message ai-message" id="initial-message">嗨！我是你的时尚助手，看看这些推荐，或者聊聊你的穿搭想法吧，比如"秋天穿什么"？</div>
+        </div>
+
+        <div class="input-area">
+            <div class="media-upload">
+                <input type="file" id="image-upload" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                <button class="media-btn" onclick="document.getElementById('image-upload').click()" title="上传图片">
+                    <i class="fas fa-image"></i>
+                </button>
+                <button class="media-btn" id="voice-record-btn" onclick="toggleVoiceRecording()" title="语音输入">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button class="media-btn" onclick="toggleEmojiPicker()" title="表情">
+                    <i class="fas fa-smile"></i>
+                </button>
+            </div>
+            <input type="text" id="user-input" placeholder="聊聊你的时尚想法吧，比如'秋天穿什么'？">
+            <button onclick="sendMessage()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+            <div id="emoji-picker" class="emoji-picker"></div>
+        </div>
+
+        <div id="suggestions" class="suggestions"></div>
+    </div>
+
+    <script>
+        const fashionSuggestions = [
+            "秋天穿什么好看", "冬季保暖又时尚", "职场穿搭怎么搭", "派对礼服推荐", "环保时尚是什么",
+            "怎么搭配颜色", "鞋子跟衣服怎么配", "复古风怎么穿", "运动装也能时尚吗", "今年流行啥"
+        ];
+        let chatHistory = [];
+        let isTyping = false;
+        let carouselInterval;
+
+        // 轮播图片
+        function startCarousel() {
+            const carousel = document.getElementById('carousel');
+            const items = document.querySelectorAll('.carousel-item');
+            let currentIndex = 0;
+            const itemWidth = 340;
+            const totalItems = items.length;
+
+            const firstClone = items[0].cloneNode(true);
+            const lastClone = items[totalItems - 1].cloneNode(true);
+            const carouselInner = document.getElementById('carousel-inner');
+            carouselInner.insertBefore(lastClone, items[0]);
+            carouselInner.appendChild(firstClone);
+
+            const allItems = document.querySelectorAll('.carousel-item');
+            const centerIndex = 1;
+
+            function updateCarouselWidth() {
+                const totalWidth = (allItems.length * itemWidth) - (2 * 20);
+                carouselInner.style.width = `${totalWidth}px`;
+            }
+            updateCarouselWidth();
+
+            function updateCarousel() {
+                const offset = -currentIndex * itemWidth;
+                carouselInner.style.transform = `translate(-50%, -50%) translateX(${offset}px)`;
+
+                allItems.forEach((item, index) => {
+                    item.classList.remove('active');
+                    const relativeIndex = (index - currentIndex + totalItems + 1) % (totalItems + 2);
+                    if (relativeIndex === centerIndex) {
+                        item.classList.add('active');
+                    }
+                });
+
+                if (allItems.length < 3) {
+                    carouselInner.style.justifyContent = 'center';
+                } else {
+                    carouselInner.style.justifyContent = 'flex-start';
+                }
+            }
+
+            allItems[centerIndex].classList.add('active');
+            updateCarousel();
+
+            carouselInterval = setInterval(() => {
+                currentIndex++;
+                updateCarousel();
+
+                if (currentIndex >= totalItems + 1) {
+                    setTimeout(() => {
+                        carouselInner.style.transition = 'none';
+                        currentIndex = 0;
+                        updateCarousel();
+                        setTimeout(() => {
+                            carouselInner.style.transition = 'transform 0.6s ease';
+                        }, 50);
+                    }, 600);
+                }
+            }, 3000);
+
+            window.addEventListener('resize', updateCarouselWidth);
+        }
+
+        // 隐藏轮播并显示聊天区域
+        function switchToChatMode() {
+            const carousel = document.getElementById('carousel');
+            const chatContainer = document.getElementById('chat-container');
+            carousel.classList.add('hidden');
+            chatContainer.classList.add('active');
+            clearInterval(carouselInterval);
+            if (!document.getElementById('initial-message')) {
+                addMessage('嗨！我是你的时尚助手，看看这些推荐，或者聊聊你的穿搭想法吧，比如"秋天穿什么"？');
+            }
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+        }
+
+        function addMessage(content, isUser = false, isImage = false, imageSrc = null) {
+            const chatContainer = document.getElementById('chat-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'} relative`;
+
+            if (isImage) {
+                messageDiv.innerHTML = `
+                    <img src="${imageSrc || content}" alt="时尚搭配" onclick="enlargeImage(this.src)" class="rounded-lg max-w-full cursor-pointer">
+                    <div class="message-actions">
+                        <span class="action-btn" onclick="copyImageUrl(this)"><i class="fas fa-copy"></i></span>
+                        <span class="action-btn" onclick="downloadImage(this)"><i class="fas fa-download"></i></span>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <p class="text-gray-800">${content}</p>
+                    <div class="message-actions">
+                        <span class="action-btn" onclick="copyText(this)"><i class="fas fa-copy"></i></span>
+                        <span class="action-btn" onclick="speakText(this)"><i class="fas fa-volume-up"></i></span>
+                    </div>
+                `;
+            }
+
+            chatContainer.appendChild(messageDiv);
+            setTimeout(() => messageDiv.classList.add('visible'), 50);
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+            if (!isImage) chatHistory.push({ isUser, content });
+        }
+
+        function enlargeImage(src) {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000;';
+            overlay.innerHTML = `<img src="${src}" style="max-width: 90%; max-height: 90%; border-radius: 12px;" onclick="this.parentElement.remove()">`;
+            document.body.appendChild(overlay);
+        }
+
+        function showTypingIndicator() {
+            if (isTyping) return;
+            isTyping = true;
+            const chatContainer = document.getElementById('chat-container');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'ai-message';
+            typingDiv.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+            typingDiv.id = 'typing-indicator';
+            chatContainer.appendChild(typingDiv);
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+        }
+
+        function removeTypingIndicator() {
+            isTyping = false;
+            const typingDiv = document.getElementById('typing-indicator');
+            if (typingDiv) typingDiv.remove();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+
+            if (!message || isTyping) return;
+
+            switchToChatMode();
+            addMessage(message, true);
+            input.value = '';
+            hideSuggestions();
+            showTypingIndicator();
+
+            try {
+                const response = await fetch('/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `require=${encodeURIComponent(message)}`
+                });
+                const data = await response.json();
+
+                removeTypingIndicator();
+                setTimeout(() => {
+                    addMessage(data.content || "嗯…没太明白，能多说点吗？");
+                    if (data.image_url) addMessage(data.image_url, false, true);
+                }, 500);
+            } catch (error) {
+                console.error('Error:', error);
+                removeTypingIndicator();
+                addMessage('哎呀，出错了！等我一下，我再试试。');
+            }
+        }
+
+        function clearChat() {
+            const chatContainer = document.getElementById('chat-container');
+            chatContainer.innerHTML = '';
+            addMessage('嗨！我是你的时尚助手，随便聊聊吧，比如"秋天穿什么"？');
+            chatHistory = [];
+        }
+
+        function toggleNightMode() {
+            document.body.classList.toggle('night-mode');
+            localStorage.setItem('nightMode', document.body.classList.contains('night-mode'));
+        }
+
+        function startVoiceInput() {
+            if (!('webkitSpeechRecognition' in window)) {
+                addMessage('哎，你的浏览器不支持语音输入，试试打字吧？');
+                return;
+            }
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'zh-CN';
+            recognition.continuous = false;
+            recognition.interimResults = true;
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('user-input').value = transcript;
+                if (event.results[0].isFinal) sendMessage();
+            };
+            recognition.onerror = () => addMessage('语音没听清，再试一次？');
+            recognition.onstart = () => addMessage('我在听，说吧！');
+            recognition.start();
+            switchToChatMode();
+        }
+
+        function showSuggestions(input) {
+            const suggestionsDiv = document.getElementById('suggestions');
+            suggestionsDiv.innerHTML = '';
+            const filtered = fashionSuggestions.filter(s => s.includes(input));
+            if (filtered.length && input) {
+                filtered.forEach(suggestion => {
+                    const item = document.createElement('div');
+                    item.className = 'suggestion-item';
+                    item.textContent = suggestion;
+                    item.onclick = () => {
+                        document.getElementById('user-input').value = suggestion;
+                        hideSuggestions();
+                        sendMessage();
+                    };
+                    suggestionsDiv.appendChild(item);
+                });
+                suggestionsDiv.style.display = 'block';
+            } else {
+                suggestionsDiv.style.display = 'none';
+            }
+        }
+
+        function hideSuggestions() {
+            document.getElementById('suggestions').style.display = 'none';
+        }
+
+        // 新增函数
+        function sendQuickQuestion(question) {
+            document.getElementById('user-input').value = question;
+            sendMessage();
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                addMessage('', true, true, e.target.result);
+                sendMessage('请分析这张图片的穿搭风格');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+
+        async function toggleVoiceRecording() {
+            const voiceBtn = document.getElementById('voice-record-btn');
+
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        addMessage('🎤 语音消息已发送', true);
+                        // 这里可以添加发送音频到服务器的逻辑
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    voiceBtn.innerHTML = '<i class="fas fa-stop text-red-500"></i>';
+                    addMessage('开始录音...', false);
+                } catch (error) {
+                    console.error('Error:', error);
+                    addMessage('无法访问麦克风，请检查权限设置');
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            }
+        }
+
+        function toggleEmojiPicker() {
+            const picker = document.getElementById('emoji-picker');
+            if (picker.style.display === 'grid') {
+                picker.style.display = 'none';
+            } else {
+                picker.style.display = 'grid';
+                if (!picker.hasChildNodes()) {
+                    const emojis = ['😊', '👍', '❤️', '👗', '👠', '👜', '🧥', '👢', '🎀', '✨'];
+                    emojis.forEach(emoji => {
+                        const btn = document.createElement('div');
+                        btn.className = 'emoji-btn';
+                        btn.textContent = emoji;
+                        btn.onclick = () => {
+                            const input = document.getElementById('user-input');
+                            input.value += emoji;
+                            picker.style.display = 'none';
+                        };
+                        picker.appendChild(btn);
+                    });
+                }
+            }
+        }
+
+        function copyText(element) {
+            const text = element.closest('.message').querySelector('p').textContent;
+            navigator.clipboard.writeText(text);
+            showToast('文本已复制');
+        }
+
+        function copyImageUrl(element) {
+            const url = element.closest('.message').querySelector('img').src;
+            navigator.clipboard.writeText(url);
+            showToast('图片链接已复制');
+        }
+
+        function downloadImage(element) {
+            const url = element.closest('.message').querySelector('img').src;
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'fashion-image.jpg';
+            link.click();
+        }
+
+        function speakText(element) {
+            const text = element.closest('.message').querySelector('p').textContent;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-CN';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+
+        // 初始化
+        startCarousel();
+        if (localStorage.getItem('nightMode') === 'true') toggleNightMode();
+
+        // 事件监听
+        const input = document.getElementById('user-input');
+        input.addEventListener('focus', switchToChatMode);
+        input.addEventListener('input', (e) => showSuggestions(e.target.value));
+        input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+        input.addEventListener('focus', () => input.placeholder = '随便聊聊吧，比如"秋天穿什么"？');
+        input.addEventListener('blur', () => { if (!input.value) input.placeholder = '聊聊你的时尚想法吧，比如"秋天穿什么"？'; });
+
+        window.addEventListener('resize', () => {
+            const chatContainer = document.getElementById('chat-container');
+            chatContainer.style.maxHeight = `calc(100vh - ${document.querySelector('.chat-wrapper').offsetHeight - chatContainer.offsetTop + 300}px)`;
+        });
+        window.dispatchEvent(new Event('resize'));
+    </script>
+</body>
+</html>
