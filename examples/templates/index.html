@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时尚推荐</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+        }
+        .result img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>时尚推荐</h1>
+        <input type="text" id="require" placeholder="请输入您的需求，例如：女生推荐">
+        <button onclick="submitRequire()">提交</button>
+        <div class="result" id="result">
+            <!-- 结果将显示在这里 -->
+        </div>
+    </div>
+
+    <script>
+        async function submitRequire() {
+            const require = document.getElementById("require").value;
+            if (!require) {
+                alert("请输入需求！");
+                return;
+            }
+
+            const response = await fetch("/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: `require=${encodeURIComponent(require)}`,
+            });
+
+            const data = await response.json();
+
+            // 显示结果
+            const resultDiv = document.getElementById("result");
+            resultDiv.innerHTML = `
+                <h2>推荐内容：</h2>
+                <p>${data.content}</p>
+                <h2>时尚图示：</h2>
+                <img src="${data.image_url}" alt="时尚图示">
+            `;
+        }
+    </script>
+</body>
+</html>
